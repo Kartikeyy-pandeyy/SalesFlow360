@@ -49,7 +49,7 @@
 
   <script>
     async function fetchLiveSale() {
-      const res = await fetch("http://localhost:8000/sales");
+      const res = await fetch("http://3.87.191.190:8000/sales");
       const data = await res.json();
       const latest = data.sales[data.sales.length - 1];
       document.getElementById("live-sale").innerHTML =
@@ -57,7 +57,7 @@
     }
 
     async function fetchBufferData() {
-      const res = await fetch("http://localhost:8000/buffer"); // You will add this endpoint
+      const res = await fetch("http://3.87.191.190:8000/buffer"); // You will add this endpoint
       const data = await res.json();
       document.getElementById("buffer-data").innerHTML =
         `<pre>${JSON.stringify(data.buffer, null, 2)}</pre>`;
