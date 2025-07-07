@@ -1,34 +1,34 @@
+# main.py
 from fastapi import FastAPI
-from data_generator import live_sales, generate_data_continuously
-from s3_uploader import upload_sales_to_s3
-from threading import Thread
 from fastapi.middleware.cors import CORSMiddleware
+import threading
+from data_generator import generate_data_continuously, upload_sales_to_s3, live_sales, buffer_lock
 
-app = FastAPI(title="SalesFlow360 API")
+app = FastAPI()
 
+# CORS setup to allow frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # You can restrict this to specific domains in prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-def root():
-    return {"message": "SalesFlow360 is running with 30-min S3 batch uploads."}
-
 @app.get("/sales")
-def get_sales():
-    return {"sales": live_sales[-100:]}  # Show last 100 records
-
-from data_generator import live_sales
+def get_recent_sales():
+    with buffer_lock:
+        recent = live_sales[-5:]
+    return {"sales": recent}
 
 @app.get("/buffer")
-def get_buffer_data():
-    return {"buffer": live_sales.copy()}  # simulate buffer with current live data
+def get_full_buffer():
+    with buffer_lock:
+        buffer_copy = live_sales.copy()
+    return {"buffer": buffer_copy}
 
 @app.on_event("startup")
-def start_background_tasks():
-    Thread(target=generate_data_continuously, daemon=True).start()
-    Thread(target=upload_sales_to_s3, daemon=True).start()
+def start_background_threads():
+    print("🔁 Starting data generator and S3 uploader...")
+    threading.Thread(target=generate_data_continuously, daemon=True).start()
+    threading.Thread(target=upload_sales_to_s3, daemon=True).start()

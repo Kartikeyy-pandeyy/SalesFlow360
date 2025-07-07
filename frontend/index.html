@@ -2,84 +2,379 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SalesFlow360 - Live Sales Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesFlow360 - Live Sales Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
+    :root {
+      --primary-color: #1a3c6d;
+      --text-color: #333;
+      --text-secondary: #444;
+      --text-muted: #666;
+      --error-color: #c0392b;
+      --live-dot-color: #2ecc71;
+      --border-color: #e0e0e0;
+      --card-bg: #fff;
+      --bg-color: #f5f5f5;
+    }
     body {
       font-family: Arial, sans-serif;
-      margin: 30px;
-      background-color: #f9f9f9;
+      margin: 1rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.5;
+      font-size: 16px;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      padding: 0 1rem;
+    }
+    h1 {
+      color: var(--primary-color);
+      font-size: clamp(1.5rem, 5vw, 1.8rem);
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
     }
     h2 {
-      color: #333;
+      color: var(--primary-color);
+      font-size: clamp(1.1rem, 4vw, 1.3rem);
+      margin-bottom: 0.75rem;
+      font-weight: 500;
     }
     .section {
-      margin-bottom: 40px;
+      margin-bottom: 2rem;
     }
     .card {
-      background: #fff;
-      padding: 15px;
-      margin-top: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+      background: var(--card-bg);
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .data-table th {
+      color: var(--primary-color);
+      font-weight: 600;
+      width: 30%;
+    }
+    .data-table td {
+      color: var(--text-secondary);
+    }
+    .buffer-card {
+      background: var(--card-bg);
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+    }
+    .buffer-table th, .buffer-table td {
+      padding: 0.3rem;
+      font-size: 0.85rem;
+    }
+    .buffer-table th {
+      width: 40%;
+    }
+    .analytics-container {
+      margin-top: 1rem;
+    }
+    .analytics-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .analytics-stat {
+      background: var(--card-bg);
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      text-align: center;
+    }
+    .analytics-stat h3 {
+      color: var(--primary-color);
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+    .analytics-stat p {
+      color: var(--error-color);
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .chart-container {
+      max-width: 100%;
+      margin: 1.25rem 0;
+    }
+    .loading, .error {
+      color: var(--error-color);
+      font-style: italic;
+      text-align: center;
+      padding: 0.75rem;
+    }
+    .timestamp {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: right;
+      margin-top: 0.5rem;
+    }
+    .live-indicator {
+      position: absolute;
+      top: 0.5rem;
+      right: 1rem;
+      display: flex;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--live-dot-color);
+      border-radius: 50%;
+      margin-right: 0.4rem;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    @media (max-width: 768px) {
+      body { font-size: 14px; }
+      .container { padding: 0 0.5rem; }
+      .data-table th, .data-table td { padding: 0.5rem; }
+      .buffer-table th, .buffer-table td { font-size: 0.75rem; }
+      .analytics-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+      .chart-container canvas { max-height: 200px; }
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 1.4rem; }
+      h2 { font-size: 1rem; }
+      .data-table th { width: 40%; }
+      .analytics-stat h3 { font-size: 0.8rem; }
+      .analytics-stat p { font-size: 0.85rem; }
     }
   </style>
 </head>
 <body>
-
-  <h1>📊 SalesFlow360 Live Data Viewer</h1>
-
-  <div class="section">
-    <h2>📡 Live Data (last 5 seconds)</h2>
-    <div class="card" id="live-sale">
-      <em>Loading...</em>
+  <div class="container">
+    <div class="live-indicator">
+      <span class="live-dot"></span> Live Data Updating
     </div>
-  </div>
+    <h1>📊 SalesFlow360 Live Sales Dashboard</h1>
 
-  <div class="section">
-    <h2>🕓 Previous 30-minute Buffer</h2>
-    <div class="card" id="buffer-data">
-      <em>Loading...</em>
+    <div class="section">
+      <h2>📡 Latest Sale (Updated Every 5 Seconds)</h2>
+      <div class="card" id="live-sale">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📈 Buffer Analytics</h2>
+      <div class="card" id="buffer-analytics">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🕓 Previous 30-Minute Buffer</h2>
+      <div id="buffer-data">
+        <div class="loading">Loading...</div>
+      </div>
     </div>
   </div>
 
   <script>
-    const API_BASE_URL = "http://3.87.191.190:8000";
+    const API_BASE_URL = "http://3.92.206.37:8000";
+    const elements = {
+      liveSale: document.getElementById("live-sale"),
+      bufferData: document.getElementById("buffer-data"),
+      bufferAnalytics: document.getElementById("buffer-analytics")
+    };
+    let revenueChartInstance = null;
+    let salesChartInstance = null;
 
-    async function fetchLiveSale() {
+    function toIST(date) {
+      const utcDate = new Date(date || Date.now());
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(utcDate.getTime() + istOffset).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    }
+
+    function formatSaleData(sale) {
+      if (!sale) return '<div class="error">No data available</div>';
+      return `
+        <table class="data-table">
+          <tr><th>Order ID</th><td>${sale.order_id || 'N/A'}</td></tr>
+          <tr><th>Product ID</th><td>${sale.product_id || 'N/A'}</td></tr>
+          <tr><th>Product Name</th><td>${sale.product_name || 'N/A'}</td></tr>
+          <tr><th>Region</th><td>${sale.region || 'N/A'}</td></tr>
+          <tr><th>Order Date</th><td>${toIST(sale.order_date)}</td></tr>
+          <tr><th>Unit Price</th><td>₹${Number(sale.unit_price || 0).toFixed(2)}</td></tr>
+          <tr><th>Cost Price</th><td>₹${Number(sale.cost_price || 0).toFixed(2)}</td></tr>
+          <tr><th>Quantity</th><td>${sale.quantity || 'N/A'}</td></tr>
+          <tr><th>Returned</th><td>${sale.returned !== undefined ? sale.returned : 'N/A'}</td></tr>
+        </table>
+        <div class="timestamp">Last updated: ${toIST(Date.now())}</div>
+      `;
+    }
+
+    function formatBufferData(buffer) {
+      if (!buffer || buffer.length === 0) return '<div class="error">No buffer data available</div>';
+      buffer.sort((a, b) => new Date(b.order_date || Date.now()) - new Date(a.order_date || Date.now()));
+      return buffer.map(sale => `
+        <div class="buffer-card">
+          <table class="buffer-table">
+            <tr><th>Order ID</th><td>${sale.order_id || 'N/A'}</td></tr>
+            <tr><th>Product</th><td>${sale.product_name || 'N/A'}</td></tr>
+            <tr><th>Region</th><td>${sale.region || 'N/A'}</td></tr>
+            <tr><th>Quantity</th><td>${sale.quantity || 'N/A'}</td></tr>
+            <tr><th>Unit Price</th><td>₹${Number(sale.unit_price || 0).toFixed(2)}</td></tr>
+            <tr><th>Returned</th><td>${sale.returned !== undefined ? sale.returned : 'N/A'}</td></tr>
+          </table>
+        </div>
+      `).join('');
+    }
+
+    function createCharts(buffer) {
+      if (revenueChartInstance) revenueChartInstance.destroy();
+      if (salesChartInstance) salesChartInstance.destroy();
+
+      const regions = [...new Set(buffer.map(sale => sale.region || 'Unknown'))];
+      const revenueByRegion = regions.map(region =>
+        buffer.filter(sale => (sale.region || 'Unknown') === region)
+          .reduce((sum, sale) => sum + (sale.unit_price * sale.quantity || 0), 0)
+      );
+
+      const times = [...new Set(buffer.map(sale => toIST(sale.order_date)))];
+      const salesCountByTime = times.reduce((acc, time) => {
+        acc[time] = buffer.filter(sale => toIST(sale.order_date) === time).length;
+        return acc;
+      }, {});
+      const timeLabels = Object.keys(salesCountByTime);
+      const salesCounts = Object.values(salesCountByTime);
+
+      const chartContainer = document.createElement('div');
+      chartContainer.className = 'chart-container';
+      chartContainer.innerHTML = `
+        <canvas id="revenueChart"></canvas>
+        <canvas id="salesChart"></canvas>
+      `;
+
+      setTimeout(() => {
+        revenueChartInstance = new Chart(document.getElementById('revenueChart'), {
+          type: 'bar',
+          data: {
+            labels: regions,
+            datasets: [{
+              label: 'Revenue by Region (₹)',
+              data: revenueByRegion,
+              backgroundColor: '#3498db',
+              borderColor: '#2980b9',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Revenue (₹)' } } },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        salesChartInstance = new Chart(document.getElementById('salesChart'), {
+          type: 'line',
+          data: {
+            labels: timeLabels,
+            datasets: [{
+              label: 'Sales Count Over Time',
+              data: salesCounts,
+              borderColor: '#c0392b',
+              backgroundColor: 'rgba(192, 57, 43, 0.2)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, title: { display: true, text: 'Sales Count' } },
+              x: { title: { display: true, text: 'Time (IST)' } }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
+      }, 0);
+
+      return chartContainer.outerHTML;
+    }
+
+    function formatBufferAnalytics(buffer) {
+      if (!buffer || buffer.length === 0) return '<div class="error">No analytics data available</div>';
+      const totalSales = buffer.length;
+      const firstSaleTime = buffer[0] ? toIST(buffer[0].order_date) : 'N/A';
+      const totalRevenue = buffer.reduce((sum, sale) => sum + (sale.unit_price * sale.quantity || 0), 0).toFixed(2);
+      const avgUnitPrice = buffer.length > 0 ? (buffer.reduce((sum, sale) => sum + (sale.unit_price || 0), 0) / buffer.length).toFixed(2) : '0.00';
+      const returnedCount = buffer.filter(sale => sale.returned === true).length;
+      const returnedPercentage = buffer.length > 0 ? ((returnedCount / buffer.length) * 100).toFixed(2) : '0.00';
+
+      return `
+        <div class="analytics-container">
+          <div class="analytics-stats">
+            <div class="analytics-stat"><h3>Total Sales</h3><p>${totalSales}</p></div>
+            <div class="analytics-stat"><h3>First Sale Time</h3><p>${firstSaleTime}</p></div>
+            <div class="analytics-stat"><h3>Total Revenue</h3><p>₹${totalRevenue}</p></div>
+            <div class="analytics-stat"><h3>Average Unit Price</h3><p>₹${avgUnitPrice}</p></div>
+            <div class="analytics-stat"><h3>Returned Sales</h3><p>${returnedPercentage}%</p></div>
+          </div>
+          ${createCharts(buffer)}
+        </div>
+      `;
+    }
+
+    async function fetchData() {
       try {
-        const res = await fetch(`${API_BASE_URL}/sales`);
-        const data = await res.json();
-        const latest = data.sales[data.sales.length - 1];
-        document.getElementById("live-sale").innerHTML =
-          `<pre>${JSON.stringify(latest, null, 2)}</pre>`;
+        const [salesRes, bufferRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/sales`),
+          fetch(`${API_BASE_URL}/buffer`)
+        ]);
+        const salesData = await salesRes.json();
+        const bufferData = await bufferRes.json();
+        elements.liveSale.innerHTML = formatSaleData(salesData.sales[salesData.sales.length - 1]);
+        elements.bufferData.innerHTML = formatBufferData(bufferData.buffer);
+        elements.bufferAnalytics.innerHTML = formatBufferAnalytics(bufferData.buffer);
       } catch (err) {
-        document.getElementById("live-sale").innerHTML = `<em>Failed to load live data</em>`;
+        elements.liveSale.innerHTML = '<div class="error">Failed to load live data</div>';
+        elements.bufferData.innerHTML = '<div class="error">Failed to load buffer data</div>';
+        elements.bufferAnalytics.innerHTML = '<div class="error">Failed to load analytics data</div>';
       }
     }
 
-    async function fetchBufferData() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/buffer`);
-        const data = await res.json();
-        document.getElementById("buffer-data").innerHTML =
-          `<pre>${JSON.stringify(data.buffer, null, 2)}</pre>`;
-      } catch (err) {
-        document.getElementById("buffer-data").innerHTML = `<em>Failed to load buffer data</em>`;
-      }
+    function refresh() {
+      fetchData();
     }
 
-    async function refresh() {
-      await fetchLiveSale();
-      await fetchBufferData();
-    }
-
-    setInterval(refresh, 5000); // refresh every 5 seconds
-    refresh(); // initial load
+    setInterval(refresh, 5000);
+    refresh();
   </script>
 </body>
 </html>
