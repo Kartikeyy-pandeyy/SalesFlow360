@@ -47,23 +47,30 @@
     </div>
   </div>
 
-  <!-- Load config BEFORE main script -->
-  <script src="config.js"></script>
-
   <script>
+    const API_BASE_URL = "http://3.87.191.190:8000";
+
     async function fetchLiveSale() {
-      const res = await fetch(`${API_BASE_URL}/sales`);
-      const data = await res.json();
-      const latest = data.sales[data.sales.length - 1];
-      document.getElementById("live-sale").innerHTML =
-        `<pre>${JSON.stringify(latest, null, 2)}</pre>`;
+      try {
+        const res = await fetch(`${API_BASE_URL}/sales`);
+        const data = await res.json();
+        const latest = data.sales[data.sales.length - 1];
+        document.getElementById("live-sale").innerHTML =
+          `<pre>${JSON.stringify(latest, null, 2)}</pre>`;
+      } catch (err) {
+        document.getElementById("live-sale").innerHTML = `<em>Failed to load live data</em>`;
+      }
     }
 
     async function fetchBufferData() {
-      const res = await fetch(`${API_BASE_URL}/buffer`);
-      const data = await res.json();
-      document.getElementById("buffer-data").innerHTML =
-        `<pre>${JSON.stringify(data.buffer, null, 2)}</pre>`;
+      try {
+        const res = await fetch(`${API_BASE_URL}/buffer`);
+        const data = await res.json();
+        document.getElementById("buffer-data").innerHTML =
+          `<pre>${JSON.stringify(data.buffer, null, 2)}</pre>`;
+      } catch (err) {
+        document.getElementById("buffer-data").innerHTML = `<em>Failed to load buffer data</em>`;
+      }
     }
 
     async function refresh() {
@@ -71,8 +78,8 @@
       await fetchBufferData();
     }
 
-    setInterval(refresh, 5000);
-    refresh();
+    setInterval(refresh, 5000); // refresh every 5 seconds
+    refresh(); // initial load
   </script>
 </body>
 </html>
