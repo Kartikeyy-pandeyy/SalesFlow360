@@ -64,7 +64,7 @@ def generate_data_continuously():
 
 def upload_sales_to_s3():
     while True:
-        time.sleep(1800)  # every 30 minutes
+        time.sleep(3600)  # every 30 minutes
 
         with buffer_lock:
             data_to_upload = live_sales.copy()
